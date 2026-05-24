@@ -1,6 +1,6 @@
 ---
 title: "EVALUACIÓN Nº 2 – ESTADÍSTICA APLICADA"
-subtitle: "Contexto: Educación Física y Ciencias del Deporte"
+subtitle: "Contexto: Educación Física y Ciencias del Deporte en estadistica"
 author: 
   - name: Yeferson Steven Loaiza Morales<br>Valerie Rincón<br>Juan José Lozano 
     affiliation: "Universidad del Tolima"
