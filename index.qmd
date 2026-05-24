@@ -1,0 +1,470 @@
+---
+title: "EVALUACIÓN Nº 2 – ESTADÍSTICA APLICADA"
+subtitle: "Contexto: Educación Física y Ciencias del Deporte"
+author: 
+  - name: Yeferson Steven Loaiza Morales<br>Valerie Rincón<br>Juan José Lozano 
+    affiliation: "Universidad del Tolima"
+    affiliation-url: "https://www.ut.edu.co/"
+date: today
+lang: es
+title-block-banner: "#98edcf"
+
+format:
+  html:
+    page-layout: full
+    fontsize: 12pt
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    number-sections: true
+    code-fold: true
+    code-summary: "Ver código"
+    theme: dark
+    highlight-style: monokai
+    html-math-method: katex
+    smooth-scroll: true
+    link-external-newwindow: true
+    code-overflow: scroll
+    favicon: favicon.ico
+    
+editor: visual
+
+knitr:
+  opts_chunk:
+    message: false
+    warning: false
+    fig.align: center
+    fig.width: 6
+    fig.height: 6
+    out.width: "80%"
+bibliography: references.bib
+---
+
+```{r setup}
+options(
+  knitr.table.format = "html",
+  scipen = 999
+)
+```
+
+```{=html}
+<div style="position:absolute; top:10px; right:10px;">
+<img src="Logo_ut.png" width="130">
+</div>
+```
+
+```{=html}
+<style>
+body{
+  background-color:#FFFFFF;
+  font-size:130%;
+  text-align:justify;
+}
+</style>
+```
+
+# .Cargar paquetes
+
+```{r}
+ipak <- function(pkg){
+
+  options(repos = c(CRAN="https://cloud.r-project.org"))
+
+  new.pkg <- pkg[!(pkg %in% rownames(installed.packages()))]
+
+  if(length(new.pkg)) install.packages(new.pkg, dependencies = TRUE)
+
+  invisible(lapply(pkg, function(p)
+    suppressPackageStartupMessages(library(p, character.only = TRUE))
+  ))
+}
+
+packages <- c("tidyverse","kableExtra","psych","readxl","palmerpenguins")
+
+ipak(packages)
+```
+
+[@kableExtra; @readxl; @ggplot2]
+
+# Caracterización de estudiantes
+
+En una institución educativa se realizó un estudio a 20 estudiantes que participan en actividades deportivas escolares. Se registraron las variables: sexo, edad, tiempo semanal de entrenamiento (horas) y nivel de condición física.
+
+```{r datos-principales}
+df <- data.frame(
+  Estudiantes = c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20"),
+  Sexo  = c("M","F","M","F","M","F","M","F","M","F",
+            "M","F","M","F","M","F","M","F","M","F"),
+  Edad  = c(15,16,14,15,17,16,15,14,16,15,
+            17,16,15,17,16,15,14,16,15,17),
+  Horas = c(3.5,5.0,6.5,2.5,7.0,4.0,8.0,3.0,5.5,2.0,
+            9.0,4.5,6.0,5.0,7.5,3.5,6.8,4.2,5.8,2.8),
+  Nivel = c("Bajo","Medio","Alto","Bajo","Alto","Medio","Alto","Bajo","Medio","Bajo",
+            "Alto","Medio","Alto","Medio","Alto","Bajo","Alto","Medio","Medio","Bajo")
+)
+df
+```
+
+## a) Clasifique las variables del estudio.
+
+Clasificación de variables
+
+| Variable                  | Tipo                  |
+|---------------------------|-----------------------|
+| Estudiante                | Cualitativa nominal   |
+| Sexo                      | Cualitativa nominal   |
+| Edad                      | Cuantitativa discreta |
+| Horas de entrenamiento    | Cuantitativa continua |
+| Nivel de condición física | Cualitativa ordinal   |
+
+## b) Determine en cuál subpoblación (hombres o mujeres) las horas de entrenamiento son más homogéneas
+
+Homogeneidad por subpoblación
+
+```{r homogeneidad}
+grupos <- split(df$Horas, df$Sexo)
+res <- sapply(grupos, function(x) c(Media=mean(x), SD=sd(x), CV=sd(x)/mean(x)*100))
+knitr::kable(t(round(res,3)), caption="Dispersión de horas por sexo")
+```
+
+El grupo con menor CV es el más homogéneo: **`r ifelse(res["CV","F"] < res["CV","M"], "Mujeres", "Hombres")`** (CV = `r round(min(res["CV",]),2)`%).
+
+------------------------------------------------------------------------
+
+# Distribución simétrica del rendimiento físico
+
+En una distribución simétrica de 7 intervalos de igual amplitud correspondiente a los puntajes obtenidos en una prueba física escolar, se conocen los siguientes datos:
+
+```{r}
+# Crear tabla
+datos <- data.frame(
+  Variable = c("A", "n1", "Y3*n3", "n2+n5", "h3", "H6"),
+  Valor = c(5, 10, 900, 48, 0.20, 0.95)
+)
+
+# Mostrar tabla
+datos
+
+```
+
+Complete la información de la distribución.
+
+```{r rendimiento-fisico}
+N  <- 200; A <- 5
+ni <- c(10, 8, 40, 84, 40, 8, 10)
+Y3 <- 900/40
+marcas <- Y3 + (1:7 - 3)*A
+Li <- marcas - A/2
+Ls <- marcas + A/2
+hi <- ni/N
+Hi <- cumsum(hi)
+Ni <- cumsum(ni)
+
+knitr::kable(data.frame(
+  Intervalo = paste0("[", Li, " – ", Ls, ")"),
+  Yi = marcas, ni, Ni,
+  hi = round(hi,4), Hi = round(Hi,4)
+), col.names = c("Intervalo","Yᵢ","nᵢ","Nᵢ","hᵢ","Hᵢ"),
+caption = "Tabla completa – Rendimiento físico (N=200)")
+```
+
+------------------------------------------------------------------------
+
+# Tiempo de reacción en pruebas deportivas
+
+Durante una semana se registró el tiempo de reacción (en segundos) de 50 estudiantes en una prueba de velocidad deportiva.
+
+```{r tiempo-reaccion}
+lim <- seq(0.20, 1.60, by=0.20)
+ni3 <- c(6,10,12,9,7,4,2)
+N3  <- 50
+Hi3 <- cumsum(ni3/N3)
+hi3 <- ni3/N3
+
+knitr::kable(data.frame(
+  Intervalo = paste0("[",lim[-8]," – ",lim[-1],")"),
+  ni=ni3, Ni=cumsum(ni3),
+  "hi%"=round(hi3*100,1), "Hi%"=round(Hi3*100,1)
+), caption="Distribución de tiempos de reacción")
+```
+
+## a) Determine qué porcentaje de estudiantes obtuvo un tiempo de reacción de a lo más 0.8 segundos.
+
+Frecuencia acumulada hasta \[0.60–0.80): $H_3 =$ `r Hi3[3]*100`% → **`r Hi3[3]*100`% de los estudiantes**.
+
+## b) Determine el tiempo máximo de reacción correspondiente al 84% de los estudiantes.
+
+```{r percentil84}
+P84 <- 1.00 + 0.20*(0.84 - Hi3[4])/hi3[5]
+```
+
+$$P_{84} = 1{,}00 + 0{,}20 \cdot \frac{0{,}84 - 0{,}74}{0{,}14} = `r round(P84,4)`\ \text{seg}$$
+
+El 84% de los estudiantes reaccionó en menos de **`r round(P84,3)` segundos**.
+
+## c) Construya un gráfico adecuado que permita mostrar aproximadamente la ubicación de la mediana y el percentil 75.
+
+```{r ojiva, fig.height=4.5}
+Me3   <- 0.60 + 0.20*(0.50 - Hi3[2])/hi3[3]
+P75_3 <- 0.80 + 0.20*(0.75 - Hi3[3])/hi3[4]
+
+ojiva <- data.frame(x=lim, y=c(0,Hi3)*100)
+ggplot(ojiva, aes(x,y)) +
+  geom_line(color="#2980b9", linewidth=1.1) +
+  geom_point(size=2.5, color="#2980b9") +
+  geom_segment(aes(x=Me3,   xend=Me3,   y=0, yend=50), linetype=2, color="#e74c3c") +
+  geom_segment(aes(x=0.20,  xend=Me3,   y=50,yend=50), linetype=2, color="#e74c3c") +
+  geom_segment(aes(x=P75_3, xend=P75_3, y=0, yend=75), linetype=2, color="#8e44ad") +
+  geom_segment(aes(x=0.20,  xend=P75_3, y=75,yend=75), linetype=2, color="#8e44ad") +
+  annotate("label",x=Me3,  y=25,label=paste0("Me=",round(Me3,3)),  color="#e74c3c",size=3.5) +
+  annotate("label",x=P75_3,y=55,label=paste0("P75=",round(P75_3,3)),color="#8e44ad",size=3.5) +
+  scale_y_continuous(labels=function(x)paste0(x,"%"), breaks=seq(0,100,10)) +
+  scale_x_continuous(breaks=lim) +
+  labs(title="Ojiva – Tiempo de reacción", x="Tiempo (seg.)", y="Hi (%)") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+# La siguiente tabla muestra los resultados de una prueba de resistencia física (minutos de actividad continua) para dos grupos de estudiantes.
+
+```{r}
+library(readxl)
+Libro1 <- read_excel("Libro1.xlsx")
+View(Libro1)
+Libro1
+```
+
+## a) Calcule en cada grupo las medidas de tendencia central.
+
+```{r resistencia}
+lim4  <- seq(10,50,5)
+marc4 <- (lim4[-9]+lim4[-1])/2
+nA <- c(5,8,12,16,20,18,11,6);  NA4 <- sum(nA)
+nB <- c(4,6,10,15,22,25,20,12); NB4 <- sum(nB)
+hiA <- nA/NA4; HiA <- cumsum(hiA)
+hiB <- nB/NB4; HiB <- cumsum(hiB)
+
+mediana_g <- function(lims, Hi, hi) {
+  i <- which(Hi>=0.5)[1]
+  lims[i] + 5*(0.5-Hi[i-1])/hi[i]
+}
+moda_g <- function(lims, ni) {
+  i <- which.max(ni)
+  d1 <- ni[i]-ifelse(i>1,ni[i-1],0)
+  d2 <- ni[i]-ifelse(i<length(ni),ni[i+1],0)
+  lims[i] + 5*d1/(d1+d2)
+}
+
+medA <- sum(marc4*nA)/NA4; MeA <- mediana_g(lim4,HiA,hiA); MoA <- moda_g(lim4,nA)
+medB <- sum(marc4*nB)/NB4; MeB <- mediana_g(lim4,HiB,hiB); MoB <- moda_g(lim4,nB)
+sdA  <- sqrt(sum(nA*(marc4-medA)^2)/NA4)
+sdB  <- sqrt(sum(nB*(marc4-medB)^2)/NB4)
+
+knitr::kable(data.frame(
+  Medida = c("Media","Mediana","Moda","Desv. Estándar","CV (%)"),
+  `Grupo A` = round(c(medA,MeA,MoA,sdA,sdA/medA*100),3),
+  `Grupo B` = round(c(medB,MeB,MoB,sdB,sdB/medB*100),3)
+), caption="Tendencia central y homogeneidad por grupo")
+```
+
+## b) Compare la homogeneidad de los datos de ambos grupos.
+
+El grupo más homogéneo es **`r ifelse(sdA/medA < sdB/medB,"Grupo A","Grupo B")`** (menor CV).
+
+------------------------------------------------------------------------
+
+# Hábitos deportivos en estudiantes
+
+Se realizó una encuesta a 20 estudiantes sobre: • Número de días por semana en que realizan actividad física. • Número de deportes que practican.
+
+```{r}
+library(readxl)
+Libro2 <- read_excel("Libro2.xlsx")
+View(Libro2)
+Libro2
+```
+
+```{r habitos}
+dias  <- c(2,3,5,1,6,7,4,5,3,6,5,2,7,3,4,5,3,2,4,1)
+depor <- c(1,1,2,1,3,4,2,2,1,3,3,1,4,1,2,2,1,1,2,1)
+```
+
+## a) Construya tablas apropiadas para analizar por separado los datos.
+
+```{r tablas-frecuencia}
+tabla_frec <- function(x, nombre) {
+  t <- as.data.frame(table(x))
+  t$Porc <- round(t$Freq/length(x)*100,1)
+  t$Acum <- cumsum(t$Freq)
+  names(t) <- c(nombre,"nᵢ","hᵢ (%)","Nᵢ")
+  t
+}
+knitr::kable(tabla_frec(dias,"Días/semana"),  caption="Días de actividad física")
+knitr::kable(tabla_frec(depor,"N° deportes"), caption="Deportes practicados")
+```
+
+## b) Determine la cantidad promedio de días de actividad física y deportes practicados.
+
+-   **Días de actividad física:** $\bar{x}$ = `r round(mean(dias),2)` días/semana\
+-   **Deportes practicados:** $\bar{x}$ = `r round(mean(depor),2)` deportes
+
+## c) Calcule el (P55) para el número de deportes y el (P45) para los días de actividad física.
+
+```{r percentiles-habitos}
+P55d <- quantile(sort(depor), 0.55, type=2)
+P45a <- quantile(sort(dias),  0.45, type=2)
+```
+
+-   **P₅₅ (deportes) = `r P55d`:** El 55% practica ≤ `r P55d` deportes.\
+-   **P₄₅ (días) = `r P45a`:** El 45% realiza actividad física ≤ `r P45a` días/semana.
+
+------------------------------------------------------------------------
+
+# Lesiones deportivas registradas
+
+La cantidad de lesiones leves ocurridas durante entrenamientos escolares fue registrada durante 400 sesiones deportivas.
+
+```{r}
+library(readxl)
+Libro3 <- read_excel("Libro3.xlsx")
+View(Libro3)
+Libro3
+```
+
+## Determine e interprete:
+
+• Promedio aritmético • Mediana ¿Por qué una de estas medidas es mayor que la otra?
+
+## Determine e interprete:
+
+• Moda • Percentil 37
+
+```{r lesiones}
+x6 <- 0:6
+n6 <- c(92,118,96,54,28,10,2)
+N6 <- 400
+
+media6 <- sum(x6*n6)/N6
+acum6  <- cumsum(n6)
+Me6    <- x6[which(acum6 >= N6/2)[1]]
+Mo6    <- x6[which.max(n6)]
+pos37  <- ceiling(N6*0.37)
+P37_6  <- x6[which(acum6 >= pos37)[1]]
+
+knitr::kable(data.frame(
+  Medida  = c("Media","Mediana","Moda","P₃₇"),
+  Valor   = c(round(media6,4), Me6, Mo6, P37_6),
+  Interpretacion = c(
+    paste0("Promedio de ",round(media6,4)," lesiones por sesión"),
+    paste0("El 50% de sesiones tuvo ≤ ",Me6," lesión"),
+    paste0("La cantidad más frecuente: ",Mo6," lesión (",n6[Mo6+1]," sesiones)"),
+    paste0("El 37% de sesiones tuvo ≤ ",P37_6," lesión")
+  )
+), caption="Medidas – Lesiones deportivas")
+```
+
+La media (`r round(media6,4)`) \> mediana (`r Me6`) porque la distribución tiene sesgo positivo: hay pocas sesiones con muchas lesiones que elevan la media.
+
+------------------------------------------------------------------------
+
+# Duración de ejercicios aeróbicos
+
+Los siguientes datos corresponden al tiempo (en minutos) que duran 40 sesiones de ejercicios aeróbicos realizadas por estudiantes:
+
+```{r aerobicos}
+x7 <- c(2.1,1.8,2.5,3.0,1.9,2.4,2.7,1.5,2.2,2.0,
+        3.1,2.8,1.7,2.5,2.3,2.6,1.9,2.0,2.2,3.3,
+        2.4,2.1,1.8,2.7,2.5,2.9,3.0,2.6,1.6,2.3,
+        2.8,2.2,2.0,1.9,2.4,2.5,2.1,2.7,3.2,2.8)
+x7
+```
+
+## a) Tabla de frecuencias (6 intervalos)
+
+```{r tabla-aerobicos}
+A7      <- round((max(x7)-min(x7))/6, 2) + 0.01
+breaks7 <- seq(min(x7), min(x7)+6*A7, by=A7)
+h7      <- hist(x7, breaks=breaks7, plot=FALSE)
+Li7 <- h7$breaks[-7]; Ls7 <- h7$breaks[-1]
+ni7 <- h7$counts;     N7  <- length(x7)
+Ni7 <- cumsum(ni7);   hi7 <- ni7/N7; Hi7 <- cumsum(hi7)
+
+knitr::kable(data.frame(
+  Intervalo = paste0("[",round(Li7,2)," – ",round(Ls7,2),")"),
+  ni=ni7, Ni=Ni7,
+  "hi%"=round(hi7*100,2), "Hi%"=round(Hi7*100,2)
+), caption="Distribución – Duración sesiones aeróbicas")
+```
+
+## b) Histograma de frecuencias relativas
+
+```{r histograma-aerobicos, fig.height=4}
+
+# Instalar solo una vez
+install.packages("ggplot2")
+
+# Cargar librería
+library(ggplot2)
+
+# Data frame
+df7 <- data.frame(
+  Li = Li7,
+  Ls = Ls7,
+  hi = hi7 * 100,
+  Marca = (Li7 + Ls7)/2
+)
+
+# Histograma
+ggplot(df7, aes(x = Li, y = hi)) +
+  
+  geom_rect(
+    aes(
+      xmin = Li,
+      xmax = Ls,
+      ymin = 0,
+      ymax = hi
+    ),
+    fill = "#3498db",
+    color = "white",
+    alpha = 0.85
+  ) +
+  
+  geom_text(
+    aes(
+      x = Marca,
+      y = hi + 0.5,
+      label = paste0(round(hi,1), "%")
+    ),
+    size = 3.5
+  ) +
+  
+  scale_x_continuous(
+    breaks = round(breaks7, 2)
+  ) +
+  
+  scale_y_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  
+  labs(
+    title = "Histograma – Duración ejercicios aeróbicos",
+    x = "Duración (min.)",
+    y = "Frecuencia relativa (%)"
+  ) +
+  
+  theme_minimal()
+
+```
+
+## c) Determine el porcentaje de sesiones comprendidas entre la media y una desviación estándar.
+
+```{r media-sd-aerobicos}
+med7   <- mean(x7); s7 <- sd(x7)
+dentro <- sum(x7 >= med7-s7 & x7 <= med7+s7)
+```
+
+$\bar{x}$ = `r round(med7,3)` \| $s$ = `r round(s7,3)` \| Rango: \[`r round(med7-s7,3)`, `r round(med7+s7,3)`\]
+
+**`r round(dentro/N7*100,1)`%** de las sesiones (`r dentro` de 40) están comprendidas entre $\bar{x} - s$ y $\bar{x} + s$. :::
